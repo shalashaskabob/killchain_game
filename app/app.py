@@ -38,6 +38,11 @@ def advance_turn():
     game_state['current_turn_index'] = (game_state['current_turn_index'] + 1) % len(game_state['teams'])
     game_state['current_question_index'] += 1
 
+def run_question_timer(question_index):
+    """Waits for the timer duration and then calls the expiration logic."""
+    socketio.sleep(QUESTION_TIMER_SECONDS)
+    question_timer_expired(question_index)
+
 def question_timer_expired(question_index):
     """
     This function is called after the timer runs out.
@@ -67,7 +72,7 @@ def start_question_timer():
     """Starts a background task that will trigger after the delay."""
     if not game_state.get('game_over'):
         current_question_index = game_state.get('current_question_index')
-        socketio.start_background_task(question_timer_expired, current_question_index)
+        socketio.start_background_task(run_question_timer, current_question_index)
 
 def send_game_state_update():
     """Emits a game state update to all clients."""
