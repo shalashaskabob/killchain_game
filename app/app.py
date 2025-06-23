@@ -1,15 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, emit
 import random
+import threading
 from questions import kill_chain_questions
 from mitre_questions import mitre_attack_questions
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# In-memory game state
 game_state = {}
-processing_guess = False
+game_lock = threading.Lock()
+QUESTION_TIMER_SECONDS = 10
 
 def get_kill_chain_categories():
     return [
@@ -26,9 +27,53 @@ def get_mitre_attack_tactics():
     ]
 
 def reset_game():
-    global game_state, processing_guess
+    global game_state
     game_state = {}
-    processing_guess = False
+
+def advance_turn():
+    """Advances the turn and question index."""
+    if not game_state or game_state.get('game_over'):
+        return
+
+    game_state['current_turn_index'] = (game_state['current_turn_index'] + 1) % len(game_state['teams'])
+    game_state['current_question_index'] += 1
+
+def question_timer(question_index):
+    """Background timer for a question."""
+    socketio.sleep(QUESTION_TIMER_SECONDS)
+    with game_lock:
+        if game_state and not game_state.get('game_over') and game_state.get('current_question_index') == question_index:
+            team_name = get_current_turn()
+            advance_turn()
+            
+            # Let clients know time is up, then wait a moment before sending the new question
+            socketio.emit('times_up', {'team': team_name}, broadcast=True)
+            socketio.sleep(2)
+            
+            send_game_state_update()
+
+def send_game_state_update():
+    """Emits a game state update and starts a timer for the new question."""
+    if not game_state or game_state.get('game_over'):
+        if game_state:
+             emit('game_state_update', get_full_game_state(), broadcast=True)
+        return
+
+    emit('game_state_update', get_full_game_state(), broadcast=True)
+    
+    if not game_state.get('game_over'):
+        socketio.start_background_task(question_timer, game_state['current_question_index'])
+
+def get_full_game_state():
+    """Constructs the complete game state for the client."""
+    return {
+        'teams': game_state.get('teams', {}),
+        'current_turn': get_current_turn(),
+        'current_question': get_current_question(),
+        'game_over': game_state.get('game_over', False),
+        'winner': game_state.get('winner', None),
+        'categories': game_state.get('categories', [])
+    }
 
 @app.route('/')
 def home():
@@ -48,33 +93,35 @@ def name_teams():
 @app.route('/start', methods=['POST'])
 def start_game():
     global game_state
-    reset_game()
-    
-    team_names = [request.form[f'team_{i}'] for i in range(int(request.form['num_teams']))]
-    game_type = request.form['game_type']
-
-    if game_type == 'mitre':
-        questions = mitre_attack_questions
-        categories = get_mitre_attack_tactics()
-        question_key = 'tactic'
-    else:
-        questions = kill_chain_questions
-        categories = get_kill_chain_categories()
-        question_key = 'stage'
+    with game_lock:
+        reset_game()
         
-    random.shuffle(questions)
+        team_names = [request.form[f'team_{i}'] for i in range(int(request.form['num_teams']))]
+        game_type = request.form['game_type']
 
-    game_state = {
-        'teams': {name: 0 for name in team_names},
-        'current_turn_index': 0,
-        'questions': questions,
-        'current_question_index': 0,
-        'game_over': False,
-        'winner': None,
-        'game_type': game_type,
-        'categories': categories,
-        'question_key': question_key
-    }
+        if game_type == 'mitre':
+            questions = mitre_attack_questions
+            categories = get_mitre_attack_tactics()
+            question_key = 'tactic'
+        else:
+            questions = kill_chain_questions
+            categories = get_kill_chain_categories()
+            question_key = 'stage'
+            
+        random.shuffle(questions)
+
+        game_state = {
+            'teams': {name: 0 for name in team_names},
+            'current_turn_index': 0,
+            'questions': questions,
+            'current_question_index': 0,
+            'game_over': False,
+            'winner': None,
+            'game_type': game_type,
+            'categories': categories,
+            'question_key': question_key
+        }
+    # Don't start the timer here, redirecting to /game will trigger the first 'connect'
     return redirect(url_for('index'))
 
 @app.route('/game')
@@ -85,27 +132,15 @@ def index():
 
 @socketio.on('connect')
 def handle_connect():
-    if game_state:
-        emit('game_state_update', {
-            'teams': game_state.get('teams', {}),
-            'current_turn': get_current_turn(),
-            'current_question': get_current_question(),
-            'game_over': game_state.get('game_over', False),
-            'winner': game_state.get('winner', None),
-            'categories': game_state.get('categories', [])
-        })
+    with game_lock:
+        if game_state:
+            # Send the initial state, the client will request to start the timer
+            emit('game_state_update', get_full_game_state())
 
 @socketio.on('get_game_state')
-def get_game_state():
-    if game_state:
-        emit('game_state_update', {
-            'teams': game_state.get('teams', {}),
-            'current_turn': get_current_turn(),
-            'current_question': get_current_question(),
-            'game_over': game_state.get('game_over', False),
-            'winner': game_state.get('winner', None),
-            'categories': game_state.get('categories', [])
-        })
+def get_game_state_and_start_timer():
+    with game_lock:
+        send_game_state_update()
 
 def get_current_question():
     if not game_state or 'questions' not in game_state or not game_state['questions']:
@@ -121,49 +156,36 @@ def get_current_turn():
 
 @socketio.on('submit_guess')
 def handle_guess(data):
-    global game_state, processing_guess
-    if processing_guess:
-        return
-
-    processing_guess = True
-    
-    guess = data['guess']
-    question_index = game_state['current_question_index']
-    correct_answer = game_state['questions'][question_index][game_state['question_key']]
-    
-    current_team_name = get_current_turn()
-
-    if guess.lower() == correct_answer.lower():
-        game_state['teams'][current_team_name] += 1
-        if game_state['teams'][current_team_name] >= 10:
-            game_state['game_over'] = True
-            game_state['winner'] = current_team_name
-            emit('game_over', {"winner": current_team_name, "teams": game_state['teams']}, broadcast=True)
+    with game_lock:
+        if not game_state or game_state.get('game_over'):
             return
-        emit('guess_result', {'correct': True, 'team': current_team_name}, broadcast=True)
-    else:
-        emit('guess_result', {'correct': False, 'team': current_team_name}, broadcast=True)
 
-    # Advance to the next team's turn first
-    game_state['current_turn_index'] = (game_state['current_turn_index'] + 1) % len(game_state['teams'])
-    # Then advance the question
-    game_state['current_question_index'] += 1
+        guess = data['guess']
+        question_index = game_state['current_question_index']
+        correct_answer = game_state['questions'][question_index][game_state['question_key']]
+        
+        current_team_name = get_current_turn()
 
-    socketio.sleep(2) 
-    emit('game_state_update', {
-        'teams': game_state.get('teams', {}),
-        'current_turn': get_current_turn(),
-        'current_question': get_current_question(),
-        'game_over': game_state.get('game_over', False),
-        'winner': game_state.get('winner', None),
-        'categories': game_state.get('categories', [])
-    }, broadcast=True)
-    
-    processing_guess = False
+        if guess.lower() == correct_answer.lower():
+            game_state['teams'][current_team_name] += 1
+            if game_state['teams'][current_team_name] >= 10:
+                game_state['game_over'] = True
+                game_state['winner'] = current_team_name
+                emit('game_over', {"winner": current_team_name, "teams": game_state['teams']}, broadcast=True)
+                return
+            emit('guess_result', {'correct': True, 'team': current_team_name}, broadcast=True)
+        else:
+            emit('guess_result', {'correct': False, 'team': current_team_name}, broadcast=True)
+
+        advance_turn()
+        
+        socketio.sleep(2)
+        send_game_state_update()
 
 @socketio.on('new_game')
 def handle_new_game():
-    reset_game()
+    with game_lock:
+        reset_game()
     emit('redirect_to_home', broadcast=True)
 
 if __name__ == '__main__':

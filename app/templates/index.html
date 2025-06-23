@@ -32,6 +32,9 @@
             <div id="game-area">
                 <div id="question-area">
                     <div id="turn-indicator"></div>
+                    <div id="timer-bar-container" style="display: none;">
+                        <progress id="timer-bar" value="10" max="10"></progress>
+                    </div>
                     <p id="question-text"></p>
                     <p id="question-actor"></p>
                     <div id="guess-result"></div>
@@ -47,12 +50,15 @@
         </main>
     </div>
 
+    <audio id="countdown-sound" src="{{ url_for('static', filename='countdown.mp3') }}" preload="auto"></audio>
     <script>
         const socket = io();
+        const countdownSound = document.getElementById('countdown-sound');
+        let timerInterval;
 
         socket.on('connect', () => {
             console.log('Connected to server');
-            socket.emit('get_game_state');
+            socket.emit('get_game_state_and_start_timer');
         });
 
         socket.on('redirect_to_home', () => {
@@ -65,12 +71,24 @@
             updateTurnIndicator(data.current_turn);
             updateQuestion(data.current_question);
             updateCategories(data.categories);
+            
             if (data.game_over) {
+                stopTimerAndSound();
                 showWinScreen(data.winner, data.teams);
+            } else if (data.current_question) {
+                startTimerAndSound();
             }
         });
 
+        socket.on('times_up', (data) => {
+            stopTimerAndSound();
+            const resultDiv = document.getElementById('guess-result');
+            resultDiv.textContent = `Time's up for ${data.team}! Next team's turn.`;
+            resultDiv.className = 'incorrect';
+        });
+
         socket.on('guess_result', (data) => {
+            stopTimerAndSound();
             const resultDiv = document.getElementById('guess-result');
             if (data.correct) {
                 resultDiv.textContent = `Correct! Point for ${data.team}.`;
@@ -127,7 +145,38 @@
         }
 
         function submitGuess(guess) {
+            stopTimerAndSound();
             socket.emit('submit_guess', { 'guess': guess });
+        }
+
+        function startTimerAndSound() {
+            const timerBar = document.getElementById('timer-bar');
+            const timerContainer = document.getElementById('timer-bar-container');
+            timerContainer.style.display = 'block';
+            
+            let timeLeft = 10;
+            timerBar.value = timeLeft;
+            
+            countdownSound.currentTime = 0;
+            countdownSound.play().catch(e => console.error("Audio play failed:", e));
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                timerBar.value = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 100);
+        }
+
+        function stopTimerAndSound() {
+            const timerContainer = document.getElementById('timer-bar-container');
+            timerContainer.style.display = 'none';
+            
+            countdownSound.pause();
+            countdownSound.currentTime = 0;
+            clearInterval(timerInterval);
         }
 
         function showWinScreen(winner, teams) {
