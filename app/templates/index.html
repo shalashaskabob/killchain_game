@@ -31,9 +31,9 @@
 
         <div id="scoreboard">
             <h2>Scoreboard</h2>
-            <ul id="teams-list">
-                <!-- Teams will be dynamically inserted here -->
-            </ul>
+            <div id="teams-list">
+                <!-- Score cards will be dynamically inserted here -->
+            </div>
         </div>
 
         <main class="container">
@@ -51,9 +51,9 @@
             <div id="win-screen" style="display: none;">
                 <h1 id="winner-message"></h1>
                 <h2>Final Scores</h2>
-                <ul id="final-scores">
+                <div id="final-scores-container">
                     <!-- Final scores will be dynamically inserted here -->
-                </ul>
+                </div>
             </div>
         </main>
     </div>
@@ -115,7 +115,7 @@
                 gameTitle.textContent = 'Cyber Kill Chain Game';
             }
 
-            updateScoreboard(data.teams);
+            updateScoreboard(data.teams, data.current_turn);
             updateTurnIndicator(data.current_turn);
             updateQuestion(data.current_question);
             updateCategories(data.categories);
@@ -151,13 +151,27 @@
             showWinScreen(data.winner, data.teams);
         });
 
-        function updateScoreboard(teams) {
-            const teamsList = document.getElementById('teams-list');
-            teamsList.innerHTML = '';
+        function updateScoreboard(teams, currentTurn) {
+            const scoreboard = document.getElementById('teams-list');
+            scoreboard.innerHTML = '';
             for (const team in teams) {
-                const li = document.createElement('li');
-                li.textContent = `${team}: ${teams[team]}`;
-                teamsList.appendChild(li);
+                const scoreCard = document.createElement('div');
+                scoreCard.className = 'team-score-card';
+                if (team === currentTurn) {
+                    scoreCard.classList.add('active-team');
+                }
+
+                const teamName = document.createElement('span');
+                teamName.className = 'team-name';
+                teamName.textContent = team;
+                
+                const teamScore = document.createElement('span');
+                teamScore.className = 'score-value';
+                teamScore.textContent = teams[team];
+
+                scoreCard.appendChild(teamName);
+                scoreCard.appendChild(teamScore);
+                scoreboard.appendChild(scoreCard);
             }
         }
 
@@ -244,12 +258,23 @@
             document.getElementById('win-screen').style.display = 'block';
             document.getElementById('winner-message').textContent = `${winner} wins the game!`;
             
-            const finalScoresList = document.getElementById('final-scores');
-            finalScoresList.innerHTML = '';
+            const finalScoresContainer = document.getElementById('final-scores-container');
+            finalScoresContainer.innerHTML = ''; // Clear previous scores
             for (const team in teams) {
-                const li = document.createElement('li');
-                li.textContent = `${team}: ${teams[team]}`;
-                finalScoresList.appendChild(li);
+                const scoreCard = document.createElement('div');
+                scoreCard.className = 'team-score-card final'; // Add a 'final' class for different styling if needed
+                
+                const teamName = document.createElement('span');
+                teamName.className = 'team-name';
+                teamName.textContent = team;
+
+                const teamScore = document.createElement('span');
+                teamScore.className = 'score-value';
+                teamScore.textContent = teams[team];
+
+                scoreCard.appendChild(teamName);
+                scoreCard.appendChild(teamScore);
+                finalScoresContainer.appendChild(scoreCard);
             }
         }
 
