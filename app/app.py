@@ -81,13 +81,16 @@ def handle_guess(data):
 
         if user_guess.lower() == correct_stage.lower():
             current_team["score"] += 1
-            game_state["current_stage"] += 1
             emit('guess_result', {'correct': True, 'team': current_team['name']}, broadcast=True)
             
-            if game_state["current_stage"] >= len(kill_chain):
+            if current_team["score"] >= 10:
                 emit('game_over', {"winner": current_team['name'], "teams": game_state["teams"]}, broadcast=True)
                 game_state["game_started"] = False
                 return
+
+            # Advance to the next stage, looping if necessary
+            game_state["current_stage"] = (game_state["current_stage"] + 1) % len(kill_chain)
+
         else:
             emit('guess_result', {'correct': False, 'team': current_team['name']}, broadcast=True)
 
