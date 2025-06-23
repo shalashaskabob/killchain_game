@@ -62,7 +62,8 @@ QUESTIONS = [
     {"description": "An insider threat copies sensitive intellectual property, including product blueprints, to an external hard drive.", "answer": "Actions on Objectives", "apt": "Disgruntled Employee"},
     {"description": "An attacker exfiltrates a compressed archive containing thousands of customer credit card numbers to a server they control.", "answer": "Actions on Objectives", "apt": "FIN7"},
     {"description": "A state-sponsored actor uses their access to disrupt a power grid by sending malicious commands to industrial control systems.", "answer": "Actions on Objectives", "apt": "Sandworm Team"},
-    {"description": "An attacker who has compromised an email server begins to read and forward all emails belonging to the company's CEO.", "answer": "Actions on Objectives", "apt": "Business Email Compromise"}
+    {"description": "An attacker who has compromised an email server begins to read and forward all emails belonging to the company's CEO.", "answer": "Actions on Objectives", "apt": "Business Email Compromise"},
+    {"description": "A threat actor uses stolen credentials to access a cloud environment and deploys a cryptocurrency mining script on multiple servers.", "answer": "Actions on Objectives", "apt": "Cryptojacking Group"}
 ]
 
 def get_shuffled_questions():
