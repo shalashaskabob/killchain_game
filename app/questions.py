@@ -63,5 +63,35 @@ kill_chain_questions = [
     {"scenario": "An attacker exfiltrates a compressed archive containing thousands of customer credit card numbers to a server they control.", "stage": "Actions on Objectives", "actor": "FIN7"},
     {"scenario": "A state-sponsored actor uses their access to disrupt a power grid by sending malicious commands to industrial control systems.", "stage": "Actions on Objectives", "actor": "Sandworm Team"},
     {"scenario": "An attacker who has compromised an email server begins to read and forward all emails belonging to the company's CEO.", "stage": "Actions on Objectives", "actor": "Business Email Compromise"},
-    {"scenario": "A threat actor uses stolen credentials to access a cloud environment and deploys a cryptocurrency mining script on multiple servers.", "stage": "Actions on Objectives", "actor": "Cryptojacking Group"}
+    {"scenario": "A threat actor uses stolen credentials to access a cloud environment and deploys a cryptocurrency mining script on multiple servers.", "stage": "Actions on Objectives", "actor": "Cryptojacking Group"},
+    
+    # --- Generic Cyber Kill Chain Knowledge Questions ---
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Reconnaissance?", "stage": "Weaponization", "actor": "Cyber Kill Chain"},
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Weaponization?", "stage": "Delivery", "actor": "Cyber Kill Chain"},
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Delivery?", "stage": "Exploitation", "actor": "Cyber Kill Chain"},
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Exploitation?", "stage": "Installation", "actor": "Cyber Kill Chain"},
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Installation?", "stage": "Command & Control", "actor": "Cyber Kill Chain"},
+    {"scenario": "In the Cyber Kill Chain model, which stage comes directly after Command & Control?", "stage": "Actions on Objectives", "actor": "Cyber Kill Chain"},
+    
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Weaponization?", "stage": "Reconnaissance", "actor": "Cyber Kill Chain"},
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Delivery?", "stage": "Weaponization", "actor": "Cyber Kill Chain"},
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Exploitation?", "stage": "Delivery", "actor": "Cyber Kill Chain"},
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Installation?", "stage": "Exploitation", "actor": "Cyber Kill Chain"},
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Command & Control?", "stage": "Installation", "actor": "Cyber Kill Chain"},
+    {"scenario": "According to the Cyber Kill Chain, what is the stage immediately preceding Actions on Objectives?", "stage": "Command & Control", "actor": "Cyber Kill Chain"},
+    
+    {"scenario": "What is the very first stage of the Cyber Kill Chain?", "stage": "Reconnaissance", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the second stage of the Cyber Kill Chain?", "stage": "Weaponization", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the third stage of the Cyber Kill Chain?", "stage": "Delivery", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the fourth stage of the Cyber Kill Chain?", "stage": "Exploitation", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the fifth stage of the Cyber Kill Chain?", "stage": "Installation", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the sixth stage of the Cyber Kill Chain?", "stage": "Command & Control", "actor": "Cyber Kill Chain"},
+    {"scenario": "What is the final stage of the Cyber Kill Chain?", "stage": "Actions on Objectives", "actor": "Cyber Kill Chain"},
+
+    {"scenario": "An adversary has just successfully exploited a vulnerability on a target system. What is the next stage in the Kill Chain?", "stage": "Installation", "actor": "Cyber Kill Chain"},
+    {"scenario": "A phishing email is sent to a target. This action belongs to which stage of the Cyber Kill Chain?", "stage": "Delivery", "actor": "Cyber Kill Chain"},
+    {"scenario": "The stage focused on 'gaining a foothold' on the target system is known as what?", "stage": "Exploitation", "actor": "Cyber Kill Chain"},
+    {"scenario": "If an attacker is creating a malicious PDF file, which stage are they currently in?", "stage": "Weaponization", "actor": "Cyber Kill Chain"},
+    {"scenario": "The 'Actions on Objectives' stage is preceded by which step?", "stage": "Command & Control", "actor": "Cyber Kill Chain"},
+    {"scenario": "The stage involving intelligence gathering on the target, such as OSINT, is called what?", "stage": "Reconnaissance", "actor": "Cyber Kill Chain"}
 ] 
