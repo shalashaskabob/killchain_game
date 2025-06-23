@@ -38,31 +38,39 @@ def advance_turn():
     game_state['current_turn_index'] = (game_state['current_turn_index'] + 1) % len(game_state['teams'])
     game_state['current_question_index'] += 1
 
-def question_timer(question_index):
-    """Background timer for a question."""
-    socketio.sleep(QUESTION_TIMER_SECONDS)
+def question_timer_expired(question_index):
+    """
+    This function is called after the timer runs out.
+    It checks if the question is still the current one, and if so, advances the turn.
+    """
+    team_name_at_timeout = None
+    should_update_clients = False
+
     with game_lock:
         if game_state and not game_state.get('game_over') and game_state.get('current_question_index') == question_index:
-            team_name = get_current_turn()
+            team_name_at_timeout = get_current_turn()
             advance_turn()
-            
-            # Let clients know time is up, then wait a moment before sending the new question
-            socketio.emit('times_up', {'team': team_name}, broadcast=True)
-            socketio.sleep(2)
-            
-            send_game_state_update()
+            should_update_clients = True
+    
+    if should_update_clients:
+        # Emit events outside the lock to avoid holding it during network I/O and sleeps
+        socketio.emit('times_up', {'team': team_name_at_timeout}, broadcast=True)
+        socketio.sleep(2)  # Give clients time to see the "time's up" message
+        send_game_state_update()
+
+def start_question_timer():
+    """Starts a background task that will trigger after the delay."""
+    if not game_state.get('game_over'):
+        current_question_index = game_state.get('current_question_index')
+        socketio.start_background_task(question_timer_expired, current_question_index)
 
 def send_game_state_update():
-    """Emits a game state update and starts a timer for the new question."""
-    if not game_state or game_state.get('game_over'):
-        if game_state:
-             emit('game_state_update', get_full_game_state(), broadcast=True)
+    """Emits a game state update to all clients."""
+    if not game_state:
         return
-
-    emit('game_state_update', get_full_game_state(), broadcast=True)
     
-    if not game_state.get('game_over'):
-        socketio.start_background_task(question_timer, game_state['current_question_index'])
+    full_state = get_full_game_state()
+    socketio.emit('game_state_update', full_state, broadcast=True)
 
 def get_full_game_state():
     """Constructs the complete game state for the client."""
@@ -138,10 +146,11 @@ def handle_connect():
             # Send the initial state, the client will request to start the timer
             emit('game_state_update', get_full_game_state())
 
-@socketio.on('get_game_state')
+@socketio.on('get_game_state_and_start_timer')
 def get_game_state_and_start_timer():
     with game_lock:
         send_game_state_update()
+        start_question_timer()
 
 def get_current_question():
     if not game_state or 'questions' not in game_state or not game_state['questions']:
@@ -157,31 +166,34 @@ def get_current_turn():
 
 @socketio.on('submit_guess')
 def handle_guess(data):
+    guess_was_made = False
     with game_lock:
-        if not game_state or game_state.get('game_over'):
-            return
+        if game_state and not game_state.get('game_over'):
+            guess_was_made = True
+            guess = data['guess']
+            question_index = game_state['current_question_index']
+            correct_answer = game_state['questions'][question_index][game_state['question_key']]
+            current_team_name = get_current_turn()
 
-        guess = data['guess']
-        question_index = game_state['current_question_index']
-        correct_answer = game_state['questions'][question_index][game_state['question_key']]
-        
-        current_team_name = get_current_turn()
+            if guess.lower() == correct_answer.lower():
+                game_state['teams'][current_team_name] += 1
+                if game_state['teams'][current_team_name] >= 10:
+                    game_state['game_over'] = True
+                    game_state['winner'] = current_team_name
+                socketio.emit('guess_result', {'correct': True, 'team': current_team_name}, broadcast=True)
+            else:
+                socketio.emit('guess_result', {'correct': False, 'team': current_team_name}, broadcast=True)
 
-        if guess.lower() == correct_answer.lower():
-            game_state['teams'][current_team_name] += 1
-            if game_state['teams'][current_team_name] >= 10:
-                game_state['game_over'] = True
-                game_state['winner'] = current_team_name
-                emit('game_over', {"winner": current_team_name, "teams": game_state['teams']}, broadcast=True)
-                return
-            emit('guess_result', {'correct': True, 'team': current_team_name}, broadcast=True)
-        else:
-            emit('guess_result', {'correct': False, 'team': current_team_name}, broadcast=True)
+            if not game_state.get('game_over'):
+                advance_turn()
 
-        advance_turn()
-        
+    if guess_was_made:
+        # Perform sleep and update outside the lock
         socketio.sleep(2)
-        send_game_state_update()
+        with game_lock:
+            send_game_state_update()
+            if not game_state.get('game_over'):
+                start_question_timer()
 
 @socketio.on('new_game')
 def handle_new_game():
