@@ -15,13 +15,13 @@ QUESTIONS = [
     {"description": "APT29 creates a custom backdoor and bundles it with a legitimate software installer for a popular VPN client.", "answer": "Weaponization", "apt": "APT29 (Cozy Bear)"},
     {"description": "A hacker crafts a PDF file that exploits a known vulnerability in Adobe Reader (CVE-2018-4990) to execute code.", "answer": "Weaponization", "apt": "Generic Malware Author"},
     {"description": "A state-sponsored group develops a zero-day exploit for a popular web browser and integrates it into an exploit kit.", "answer": "Weaponization", "apt": "Equation Group"},
-    {"description": "An attacker sets up a command and control server with a domain name that closely mimics the target company's actual domain.", "answer": "Weaponization", "apt": "APT28 (Fancy Bear)"},
+    {"description": "An attacker uses a packer to obfuscate a known malware sample, creating a new binary with a unique hash to evade signature-based antivirus.", "answer": "Weaponization", "apt": "Malware Packager"},
     {"description": "A malicious actor uses a known exploit framework like Metasploit to package a reverse shell payload.", "answer": "Weaponization", "apt": "Script Kiddie"},
     {"description": "A threat group creates a polyglot file that appears as a harmless image but also contains malicious JavaScript.", "answer": "Weaponization", "apt": "Steganography Specialist"},
 
     # Delivery
     {"description": "A phishing email with a malicious attachment disguised as an invoice is sent to the accounting department.", "answer": "Delivery", "apt": "FIN7"},
-    {"description": "An employee is tricked into plugging in a USB drive found in the company parking lot, which then executes a malicious payload.", "answer": "Delivery", "apt": "Stuxnet"},
+    {"description": "An attacker leaves several infected USB drives labeled 'Q3 Layoff Plans' in the cafeteria of a target company, hoping an employee will plug one in.", "answer": "Delivery", "apt": "Social Engineer"},
     {"description": "A watering hole attack is set up on a popular industry news website frequently visited by the target's employees.", "answer": "Delivery", "apt": "Lazarus Group"},
     {"description": "An attacker sends a spear-phishing email to a high-level executive, appearing to be from the company's CEO.", "answer": "Delivery", "apt": "Whaling Attackers"},
     {"description": "A malicious link to a weaponized document is shared via a direct message on a professional networking site.", "answer": "Delivery", "apt": "Social Engineer"},
@@ -32,7 +32,7 @@ QUESTIONS = [
     {"description": "A user opens a malicious Word document, and the embedded macro script executes, exploiting a vulnerability in the macro engine.", "answer": "Exploitation", "apt": "Dridex Operators"},
     {"description": "A victim visits a compromised website, and an exploit kit silently executes code in their browser by leveraging a Flash Player vulnerability.", "answer": "Exploitation", "apt": "Angler Exploit Kit"},
     {"description": "The EternalBlue exploit is used to gain remote code execution on a server that has not been patched for SMB vulnerabilities.", "answer": "Exploitation", "apt": "WannaCry Ransomware"},
-    {"description": "A user is convinced to enter their credentials on a fake login page that looks identical to their corporate portal.", "answer": "Exploitation", "apt": "Credential Harvester"},
+    {"description": "A Java deserialization vulnerability (e.g., in Apache Struts) is triggered, allowing an attacker to execute arbitrary code on the server.", "answer": "Exploitation", "apt": "Equifax Breach Actor"},
     {"description": "A buffer overflow vulnerability in a web application is triggered by a specially crafted HTTP request, allowing the attacker to run their own commands.", "answer": "Exploitation", "apt": "Web App Attacker"},
     {"description": "A zero-day exploit in a PDF reader is triggered when the victim opens a booby-trapped document.", "answer": "Exploitation", "apt": "APT29 (Cozy Bear)"},
     {"description": "An SQL injection attack successfully bypasses login authentication on a web server.", "answer": "Exploitation", "apt": "Anonymous"},
@@ -52,7 +52,7 @@ QUESTIONS = [
     {"description": "Malware on an infected host communicates with its operator by posting and reading encrypted comments on a specific social media page.", "answer": "Command & Control", "apt": "Stealthy Persuasion"},
     {"description": "An attacker uses the Tor network to anonymize their C2 communications, making them difficult to trace.", "answer": "Command & Control", "apt": "Anonymity Seekers"},
     {"description": "A backdoor on a corporate workstation receives commands hidden within standard-looking HTTPS traffic to a public cloud service.", "answer": "Command & Control", "apt": "Cloud-Native C2"},
-    {"description": "A remote access trojan establishes a reverse shell back to the attacker's machine, giving them full control.", "answer": "Command & Control", "apt": "Gh0st RAT"},
+    {"description": "Malware on a compromised host establishes an encrypted reverse connection to a server, waiting for commands from the attacker.", "answer": "Command & Control", "apt": "Gh0st RAT"},
     {"description": "An attacker uses a legitimate cloud storage service like Dropbox to send commands to and exfiltrate data from a compromised host.", "answer": "Command & Control", "apt": "Cloud-based C2"},
 
     # Actions on Objectives
