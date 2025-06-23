@@ -34,7 +34,21 @@ body {
 }
 
 .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.header-content {
+    text-align: left;
+}
+
+.new-game-btn {
+    width: auto;
+    padding: 10px 20px;
+    font-size: 0.9em;
 }
 
 h1 {

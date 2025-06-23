@@ -1,57 +1,52 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, emit
-import os
+from app.questions import get_shuffled_questions
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
 socketio = SocketIO(app)
 
 # In-memory game state
 game_state = {
     "teams": [],
-    "current_stage": 0,
+    "questions": [],
+    "current_question_index": 0,
     "current_turn_index": 0,
     "game_started": False,
     "processing_guess": False
 }
 
-# Cyber Kill Chain Stages
-kill_chain = [
-    {"name": "Reconnaissance", "description": "Gathering information about the target."},
-    {"name": "Weaponization", "description": "Creating a malicious payload to send to the target."},
-    {"name": "Delivery", "description": "Transmitting the weapon to the target."},
-    {"name": "Exploitation", "description": "Triggering the weapon to exploit a vulnerability."},
-    {"name": "Installation", "description": "Installing malware on the target system."},
-    {"name": "Command & Control", "description": "Establishing a command channel to the target."},
-    {"name": "Actions on Objectives", "description": "Performing the ultimate goal of the attack."}
-]
+def reset_game_state():
+    """Resets the game to its initial state for a new game."""
+    global game_state
+    game_state = {
+        "teams": [],
+        "questions": get_shuffled_questions(),
+        "current_question_index": 0,
+        "current_turn_index": 0,
+        "game_started": False,
+        "processing_guess": False
+    }
 
 @app.route('/')
 def index():
-    # Reset game state for a new session
-    global game_state
-    game_state = {
-        "teams": [], "current_stage": 0, 
-        "current_turn_index": 0, "game_started": False,
-        "processing_guess": False
-    }
+    reset_game_state()
     return render_template('setup.html')
-
-@app.route('/setup', methods=['POST'])
-def setup():
-    num_teams = int(request.form['teams'])
-    return render_template('name_teams.html', num_teams=num_teams)
 
 @app.route('/start_game', methods=['POST'])
 def start_game():
-    game_state["teams"] = []
+    # Keep the shuffled questions but reset teams and progress
+    teams = []
     for i in range(int(request.form['num_teams'])):
         team_name = request.form[f'team_{i}']
-        game_state["teams"].append({"name": team_name, "score": 0})
+        teams.append({"name": team_name, "score": 0})
     
-    game_state["current_stage"] = 0
-    game_state["current_turn_index"] = 0
-    game_state["game_started"] = True
+    game_state.update({
+        "teams": teams,
+        "current_question_index": 0,
+        "current_turn_index": 0,
+        "game_started": True,
+        "processing_guess": False
+    })
     
     # Notify all clients that the game has started
     socketio.emit('game_started')
@@ -59,14 +54,20 @@ def start_game():
 
 @app.route('/game')
 def game():
-    if not game_state["game_started"]:
+    if not game_state.get("game_started"):
         return redirect(url_for('index'))
     return render_template('index.html')
 
 @socketio.on('connect')
 def handle_connect():
-    if game_state["game_started"]:
+    if game_state.get("game_started"):
         emit('game_update', get_game_view())
+
+@socketio.on('new_game')
+def handle_new_game():
+    reset_game_state()
+    # Tell all clients to go back to the setup screen
+    emit('redirect_to_setup', broadcast=True)
 
 @socketio.on('submit_guess')
 def handle_guess(data):
@@ -76,10 +77,10 @@ def handle_guess(data):
     game_state["processing_guess"] = True
     try:
         user_guess = data['guess'].strip()
-        correct_stage = kill_chain[game_state["current_stage"]]['name']
+        correct_answer = game_state["questions"][game_state["current_question_index"]]["answer"]
         current_team = game_state["teams"][game_state["current_turn_index"]]
 
-        if user_guess.lower() == correct_stage.lower():
+        if user_guess.lower() == correct_answer.lower():
             current_team["score"] += 1
             emit('guess_result', {'correct': True, 'team': current_team['name']}, broadcast=True)
             
@@ -87,35 +88,31 @@ def handle_guess(data):
                 emit('game_over', {"winner": current_team['name'], "teams": game_state["teams"]}, broadcast=True)
                 game_state["game_started"] = False
                 return
-
-            # Advance to the next stage, looping if necessary
-            game_state["current_stage"] = (game_state["current_stage"] + 1) % len(kill_chain)
-
         else:
             emit('guess_result', {'correct': False, 'team': current_team['name']}, broadcast=True)
 
-        # Advance to the next team's turn
+        # Advance to the next team's turn first
         game_state["current_turn_index"] = (game_state["current_turn_index"] + 1) % len(game_state["teams"])
-        
+        # Then advance the question
+        game_state["current_question_index"] += 1
+
         socketio.sleep(2) 
         emit('game_update', get_game_view(), broadcast=True)
     finally:
         game_state["processing_guess"] = False
 
 def get_game_view():
+    """Constructs the data payload for the frontend."""
+    # Ensure we don't go out of bounds if questions run out
+    q_index = game_state['current_question_index'] % len(game_state['questions'])
+    
     view = {
         "teams": game_state["teams"],
-        "stage": kill_chain[game_state["current_stage"]],
-        "progress": f"Stage {game_state['current_stage'] + 1}/{len(kill_chain)}",
+        "question": game_state["questions"][q_index]["description"],
+        "question_number": game_state["current_question_index"] + 1,
         "current_turn": game_state["teams"][game_state["current_turn_index"]]["name"]
     }
     return view
-
-@app.route('/win')
-def win():
-    # This route is now mostly handled by game_over socket event
-    # but we can keep a simple win page as a fallback or for direct navigation
-    return render_template('win.html', teams=game_state.get("teams", []))
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 

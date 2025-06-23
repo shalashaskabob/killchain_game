@@ -11,8 +11,11 @@
 <body>
     <div class="game-container">
         <header class="game-header">
-            <h1>Cyber Kill Chain Game</h1>
-            <p id="turn-indicator">Loading...</p>
+            <div class="header-content">
+                <h1>Cyber Kill Chain Game</h1>
+                <p id="turn-indicator">Loading...</p>
+            </div>
+            <button id="new-game-btn" class="new-game-btn">New Game</button>
         </header>
 
         <div id="scoreboard">
@@ -20,9 +23,9 @@
         </div>
 
         <main class="game-area">
-            <p id="progress"></p>
+            <p id="question-number"></p>
             <div class="card">
-                <p><strong>Description:</strong> <span id="stage-description"></span></p>
+                <p><strong>Scenario:</strong> <span id="question-description"></span></p>
             </div>
             <div id="result-feedback"></div>
             <form id="guess-form">
@@ -36,22 +39,21 @@
         const socket = io();
 
         const scoreboard = document.getElementById('scoreboard');
-        const progress = document.getElementById('progress');
-        const stageDescription = document.getElementById('stage-description');
+        const questionNumber = document.getElementById('question-number');
+        const questionDescription = document.getElementById('question-description');
         const guessForm = document.getElementById('guess-form');
         const guessInput = document.getElementById('stage-guess');
         const turnIndicator = document.getElementById('turn-indicator');
         const resultFeedback = document.getElementById('result-feedback');
+        const newGameBtn = document.getElementById('new-game-btn');
 
         socket.on('game_update', function(data) {
             resultFeedback.innerHTML = '';
             guessInput.disabled = false;
             guessForm.querySelector('button').disabled = false;
             
-            // Update turn indicator
             turnIndicator.textContent = `${data.current_turn}'s Turn`;
 
-            // Update scoreboard
             let scoresHtml = '';
             data.teams.forEach(team => {
                 const activeClass = team.name === data.current_turn ? 'active-team' : '';
@@ -62,11 +64,9 @@
             });
             scoreboard.innerHTML = scoresHtml;
 
-            // Update stage info
-            stageDescription.textContent = data.stage.description;
-            progress.textContent = data.progress;
+            questionDescription.textContent = data.question;
+            questionNumber.textContent = `Question #${data.question_number}`;
             
-            // Set focus to input for the current team
             guessInput.focus();
         });
 
@@ -81,14 +81,20 @@
             }
         });
 
+        newGameBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to start a new game? Current progress will be lost.')) {
+                socket.emit('new_game');
+            }
+        });
+
         socket.on('guess_result', function(data) {
             let feedbackClass = data.correct ? 'correct' : 'incorrect';
             let feedbackText = data.correct ? `Correct! +1 point for ${data.team}` : `Incorrect! Next team's turn.`;
             resultFeedback.innerHTML = `<p class="${feedbackClass}">${feedbackText}</p>`;
         });
 
-        socket.on('game_started', function() {
-            window.location.href = "{{ url_for('game') }}";
+        socket.on('redirect_to_setup', function() {
+            window.location.href = "/";
         });
 
         socket.on('game_over', function(data) {
