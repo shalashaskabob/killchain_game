@@ -4,31 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyber Kill Chain Game</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Orbitron:wght@700&display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Cyber Kill Chain Game</h1>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>Cyber Kill Chain Game</h1>
+            <p id="turn-indicator">Loading...</p>
+        </header>
+
         <div id="scoreboard">
-            <h2>Scoreboard</h2>
             <!-- Scores will be rendered here by JS -->
         </div>
 
-        <p id="progress"></p>
-
-        <div class="card">
-            <p><strong>Description:</strong> <span id="stage-description"></span></p>
-        </div>
-
-        <form id="guess-form">
-            <label for="team-select">Select Your Team:</label>
-            <select id="team-select" required>
-                <!-- Team options will be rendered here by JS -->
-            </select>
-            <input type="text" id="stage-guess" placeholder="Enter stage name" required>
-            <button type="submit">Guess</button>
-        </form>
+        <main class="game-area">
+            <p id="progress"></p>
+            <div class="card">
+                <p><strong>Description:</strong> <span id="stage-description"></span></p>
+            </div>
+            <div id="result-feedback"></div>
+            <form id="guess-form">
+                <input type="text" id="stage-guess" placeholder="Enter stage name..." required autocomplete="off">
+                <button type="submit">Submit Guess</button>
+            </form>
+        </main>
     </div>
 
     <script>
@@ -37,47 +38,71 @@
         const scoreboard = document.getElementById('scoreboard');
         const progress = document.getElementById('progress');
         const stageDescription = document.getElementById('stage-description');
-        const teamSelect = document.getElementById('team-select');
         const guessForm = document.getElementById('guess-form');
         const guessInput = document.getElementById('stage-guess');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const resultFeedback = document.getElementById('result-feedback');
 
         socket.on('game_update', function(data) {
+            resultFeedback.innerHTML = '';
+            guessInput.disabled = false;
+            guessForm.querySelector('button').disabled = false;
+            
+            // Update turn indicator
+            turnIndicator.textContent = `${data.current_turn}'s Turn`;
+
             // Update scoreboard
-            let scoresHtml = '<ul>';
-            let teamOptionsHtml = '';
+            let scoresHtml = '';
             data.teams.forEach(team => {
-                scoresHtml += `<li>${team.name}: ${team.score}</li>`;
-                teamOptionsHtml += `<option value="${team.name}">${team.name}</option>`;
+                const activeClass = team.name === data.current_turn ? 'active-team' : '';
+                scoresHtml += `<div class="team-score ${activeClass}">
+                                 <span class="team-name">${team.name}</span>
+                                 <span class="score">${team.score}</span>
+                               </div>`;
             });
-            scoresHtml += '</ul>';
-            scoreboard.innerHTML = '<h2>Scoreboard</h2>' + scoresHtml;
-            teamSelect.innerHTML = teamOptionsHtml;
+            scoreboard.innerHTML = scoresHtml;
 
             // Update stage info
             stageDescription.textContent = data.stage.description;
-            progress.textContent = `Stage ${data.progress}`;
+            progress.textContent = data.progress;
+            
+            // Set focus to input for the current team
+            guessInput.focus();
         });
 
         guessForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const selectedTeam = teamSelect.value;
             const guess = guessInput.value;
-            socket.emit('submit_guess', { team: selectedTeam, guess: guess });
-            guessInput.value = '';
+            if (guess) {
+                socket.emit('submit_guess', { guess: guess });
+                guessInput.value = '';
+                guessInput.disabled = true;
+                guessForm.querySelector('button').disabled = true;
+            }
         });
 
-        socket.on('game_started', function(data) {
+        socket.on('guess_result', function(data) {
+            let feedbackClass = data.correct ? 'correct' : 'incorrect';
+            let feedbackText = data.correct ? `Correct! +1 point for ${data.team}` : `Incorrect! Next team's turn.`;
+            resultFeedback.innerHTML = `<p class="${feedbackClass}">${feedbackText}</p>`;
+        });
+
+        socket.on('game_started', function() {
             window.location.href = "{{ url_for('game') }}";
         });
 
         socket.on('game_over', function(data) {
-            alert(`${data.winner} wins!`);
-            let finalScores = '<h2>Final Scores</h2><ul>';
+            let finalScores = '<div class="final-scores">';
             data.teams.forEach(team => {
-                finalScores += `<li>${team.name}: ${team.score}</li>`;
+                finalScores += `<p>${team.name}: ${team.score}</p>`;
             });
-            finalScores += '</ul><a href="/">Play Again</a>';
-            document.querySelector('.container').innerHTML = `<h1>Game Over!</h1><p>${data.winner} is the winner!</p>${finalScores}`;
+            finalScores += '</div><a href="/" class="play-again-btn">Play Again</a>';
+            document.querySelector('.game-container').innerHTML = `
+                <header class="game-header">
+                    <h1>Game Over!</h1>
+                    <p class="winner-announcement">${data.winner} is the winner!</p>
+                </header>
+                ${finalScores}`;
         });
 
     </script>
