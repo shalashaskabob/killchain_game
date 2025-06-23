@@ -203,8 +203,9 @@
             
             timerContainer.style.display = 'block';
             
-            let timeLeft = 10;
+            let timeLeft = 20;
             timerBar.value = timeLeft;
+            timerBar.max = 20;
             
             countdownSound.volume = parseFloat(volumeSlider.value);
             countdownSound.currentTime = 0;
