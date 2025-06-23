@@ -1,6 +1,6 @@
 import random
 
-QUESTIONS = [
+kill_chain_questions = [
     # Reconnaissance
     {"description": "An attacker uses the harvester tool to gather employee email addresses from a company's public website.", "answer": "Reconnaissance", "apt": "Generic Cybercriminal"},
     {"description": "A threat actor scans a target's network for open SSH ports using Nmap.", "answer": "Reconnaissance", "apt": "APT28 (Fancy Bear)"},
@@ -64,10 +64,4 @@ QUESTIONS = [
     {"description": "A state-sponsored actor uses their access to disrupt a power grid by sending malicious commands to industrial control systems.", "answer": "Actions on Objectives", "apt": "Sandworm Team"},
     {"description": "An attacker who has compromised an email server begins to read and forward all emails belonging to the company's CEO.", "answer": "Actions on Objectives", "apt": "Business Email Compromise"},
     {"description": "A threat actor uses stolen credentials to access a cloud environment and deploys a cryptocurrency mining script on multiple servers.", "answer": "Actions on Objectives", "apt": "Cryptojacking Group"}
-]
-
-def get_shuffled_questions():
-    """Returns a shuffled copy of the questions list."""
-    shuffled_list = QUESTIONS.copy()
-    random.shuffle(shuffled_list)
-    return shuffled_list 
+] 
