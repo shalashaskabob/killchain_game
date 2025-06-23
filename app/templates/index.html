@@ -11,11 +11,19 @@
 <body>
     <div class="game-container">
         <header class="game-header">
-            <div class="header-content">
-                <h1>Cyber Kill Chain Game</h1>
-                <p id="turn-indicator">Loading...</p>
+            <div class="header-top-row">
+                <div class="header-title">
+                    <h1 id="game-title">Cyber Challenge</h1>
+                    <p id="turn-indicator">Loading...</p>
+                </div>
+                <div class="header-controls">
+                    <div class="volume-controls">
+                        <span id="volume-icon" class="volume-icon">🔊</span>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <button id="new-game-btn" class="new-game-btn">New Game</button>
+                </div>
             </div>
-            <button id="new-game-btn" class="new-game-btn">New Game</button>
             <div class="kill-chain-header" id="kill-chain-header">
                 <!-- Categories will be dynamically inserted here -->
             </div>
@@ -54,7 +62,40 @@
     <script>
         const socket = io();
         const countdownSound = document.getElementById('countdown-sound');
+        const volumeSlider = document.getElementById('volume-slider');
+        const volumeIcon = document.getElementById('volume-icon');
+        const gameTitle = document.getElementById('game-title');
         let timerInterval;
+
+        // --- Volume Controls ---
+        function setVolume(volume) {
+            const newVolume = parseFloat(volume);
+            countdownSound.volume = newVolume;
+            volumeSlider.value = newVolume;
+            localStorage.setItem('gameVolume', newVolume);
+            volumeIcon.textContent = newVolume === 0 ? '🔇' : '🔊';
+        }
+
+        volumeSlider.addEventListener('input', (e) => {
+            setVolume(e.target.value);
+        });
+
+        volumeIcon.addEventListener('click', () => {
+            if (countdownSound.volume > 0) {
+                localStorage.setItem('lastVolume', countdownSound.volume);
+                setVolume(0);
+            } else {
+                const lastVolume = localStorage.getItem('lastVolume') || '0.5';
+                setVolume(lastVolume);
+            }
+        });
+
+        // Load volume on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedVolume = localStorage.getItem('gameVolume') || '0.5';
+            setVolume(savedVolume);
+        });
+        // -----------------------
 
         socket.on('connect', () => {
             console.log('Connected to server');
@@ -67,6 +108,13 @@
 
         socket.on('game_state_update', (data) => {
             console.log('Game state update:', data);
+            
+            if (data.game_type === 'mitre') {
+                gameTitle.textContent = 'MITRE ATT&CK Game';
+            } else {
+                gameTitle.textContent = 'Cyber Kill Chain Game';
+            }
+
             updateScoreboard(data.teams);
             updateTurnIndicator(data.current_turn);
             updateQuestion(data.current_question);
@@ -152,18 +200,27 @@
         function startTimerAndSound() {
             const timerBar = document.getElementById('timer-bar');
             const timerContainer = document.getElementById('timer-bar-container');
+            const masterVolume = parseFloat(volumeSlider.value);
+
             timerContainer.style.display = 'block';
             
             let timeLeft = 10;
             timerBar.value = timeLeft;
             
+            countdownSound.volume = masterVolume;
             countdownSound.currentTime = 0;
             countdownSound.play().catch(e => console.error("Audio play failed:", e));
 
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft -= 0.1;
-                timerBar.value = timeLeft;
+                timerBar.value = timeLeft > 0 ? timeLeft : 0;
+
+                // Fade out in the last 2 seconds
+                if (timeLeft <= 2 && timeLeft > 0) {
+                    countdownSound.volume = masterVolume * (timeLeft / 2);
+                }
+
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                 }
@@ -176,6 +233,8 @@
             
             countdownSound.pause();
             countdownSound.currentTime = 0;
+            // Reset volume for next play
+            countdownSound.volume = parseFloat(volumeSlider.value);
             clearInterval(timerInterval);
         }
 

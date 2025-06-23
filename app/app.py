@@ -72,7 +72,8 @@ def get_full_game_state():
         'current_question': get_current_question(),
         'game_over': game_state.get('game_over', False),
         'winner': game_state.get('winner', None),
-        'categories': game_state.get('categories', [])
+        'categories': game_state.get('categories', []),
+        'game_type': game_state.get('game_type', 'kill_chain')
     }
 
 @app.route('/')

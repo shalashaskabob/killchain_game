@@ -44,6 +44,46 @@ body {
     border: 1px solid var(--border-color);
 }
 
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-title {
+    text-align: left;
+}
+
+.header-title h1, .header-title p {
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.volume-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volume-icon {
+    cursor: pointer;
+    font-size: 1.5em;
+    user-select: none;
+}
+
+#volume-slider {
+    width: 100px;
+    cursor: pointer;
+}
+
 .kill-chain-header {
     display: flex;
     flex-wrap: wrap;
