@@ -53,10 +53,13 @@ def question_timer_expired(question_index):
             should_update_clients = True
     
     if should_update_clients:
-        # Emit events outside the lock to avoid holding it during network I/O and sleeps
         socketio.emit('times_up', {'team': team_name_at_timeout}, broadcast=True)
         socketio.sleep(2)  # Give clients time to see the "time's up" message
-        send_game_state_update()
+        
+        with game_lock:
+            send_game_state_update()
+            if not game_state.get('game_over'):
+                start_question_timer()
 
 def start_question_timer():
     """Starts a background task that will trigger after the delay."""
