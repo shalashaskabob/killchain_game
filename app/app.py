@@ -10,7 +10,7 @@ socketio = SocketIO(app)
 
 game_state = {}
 game_lock = threading.Lock()
-QUESTION_TIMER_SECONDS = 10
+QUESTION_TIMER_SECONDS = 20
 
 def get_kill_chain_categories():
     return [
