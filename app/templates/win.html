@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You Won!</title>
+    <title>Game Over!</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
-        <h1>Congratulations!</h1>
-        <p>You have successfully completed the Cyber Kill Chain game.</p>
-        <p>Your final score is: {{ score }}</p>
+        <h1>Game Over!</h1>
+        
+        <h2>Final Scores</h2>
+        <ul>
+        {% for team in teams %}
+            <li>{{ team.name }}: {{ team.score }}</li>
+        {% endfor %}
+        </ul>
+
         <a href="{{ url_for('index') }}">Play Again</a>
     </div>
 </body>

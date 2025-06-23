@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Setup - Cyber Kill Chain</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Game Setup</h1>
+        <p>How many teams will be playing?</p>
+        <form action="{{ url_for('setup') }}" method="post">
+            <input type="number" name="teams" min="1" max="10" value="2" required>
+            <button type="submit">Set Teams</button>
+        </form>
+    </div>
+</body>
+</html> 

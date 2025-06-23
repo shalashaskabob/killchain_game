@@ -5,20 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cyber Kill Chain Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>Cyber Kill Chain Game</h1>
-        <p>Guess the stage of the Cyber Kill Chain based on the description.</p>
-        
-        <div class="card">
-            <p><strong>Description:</strong> {{ stage.description }}</p>
+        <div id="scoreboard">
+            <h2>Scoreboard</h2>
+            <!-- Scores will be rendered here by JS -->
         </div>
 
-        <form action="{{ url_for('guess') }}" method="post">
-            <input type="text" name="stage" placeholder="Enter stage name" required>
+        <p id="progress"></p>
+
+        <div class="card">
+            <p><strong>Description:</strong> <span id="stage-description"></span></p>
+        </div>
+
+        <form id="guess-form">
+            <label for="team-select">Select Your Team:</label>
+            <select id="team-select" required>
+                <!-- Team options will be rendered here by JS -->
+            </select>
+            <input type="text" id="stage-guess" placeholder="Enter stage name" required>
             <button type="submit">Guess</button>
         </form>
     </div>
+
+    <script>
+        const socket = io();
+
+        const scoreboard = document.getElementById('scoreboard');
+        const progress = document.getElementById('progress');
+        const stageDescription = document.getElementById('stage-description');
+        const teamSelect = document.getElementById('team-select');
+        const guessForm = document.getElementById('guess-form');
+        const guessInput = document.getElementById('stage-guess');
+
+        socket.on('game_update', function(data) {
+            // Update scoreboard
+            let scoresHtml = '<ul>';
+            let teamOptionsHtml = '';
+            data.teams.forEach(team => {
+                scoresHtml += `<li>${team.name}: ${team.score}</li>`;
+                teamOptionsHtml += `<option value="${team.name}">${team.name}</option>`;
+            });
+            scoresHtml += '</ul>';
+            scoreboard.innerHTML = '<h2>Scoreboard</h2>' + scoresHtml;
+            teamSelect.innerHTML = teamOptionsHtml;
+
+            // Update stage info
+            stageDescription.textContent = data.stage.description;
+            progress.textContent = `Stage ${data.progress}`;
+        });
+
+        guessForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selectedTeam = teamSelect.value;
+            const guess = guessInput.value;
+            socket.emit('submit_guess', { team: selectedTeam, guess: guess });
+            guessInput.value = '';
+        });
+
+        socket.on('game_started', function(data) {
+            window.location.href = "{{ url_for('game') }}";
+        });
+
+        socket.on('game_over', function(data) {
+            alert(`${data.winner} wins!`);
+            let finalScores = '<h2>Final Scores</h2><ul>';
+            data.teams.forEach(team => {
+                finalScores += `<li>${team.name}: ${team.score}</li>`;
+            });
+            finalScores += '</ul><a href="/">Play Again</a>';
+            document.querySelector('.container').innerHTML = `<h1>Game Over!</h1><p>${data.winner} is the winner!</p>${finalScores}`;
+        });
+
+    </script>
 </body>
 </html> 

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Your Teams - Cyber Kill Chain</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Name Your Teams</h1>
+        <form action="{{ url_for('start_game') }}" method="post">
+            <input type="hidden" name="num_teams" value="{{ num_teams }}">
+            {% for i in range(num_teams) %}
+                <label for="team_{{ i }}">Team {{ i + 1 }} Name:</label>
+                <input type="text" name="team_{{ i }}" id="team_{{ i }}" required>
+            {% endfor %}
+            <button type="submit">Start Game</button>
+        </form>
+    </div>
+</body>
+</html> 
