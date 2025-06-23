@@ -11,7 +11,8 @@ game_state = {
     "teams": [],
     "current_stage": 0,
     "current_turn_index": 0,
-    "game_started": False
+    "game_started": False,
+    "processing_guess": False
 }
 
 # Cyber Kill Chain Stages
@@ -31,7 +32,8 @@ def index():
     global game_state
     game_state = {
         "teams": [], "current_stage": 0, 
-        "current_turn_index": 0, "game_started": False
+        "current_turn_index": 0, "game_started": False,
+        "processing_guess": False
     }
     return render_template('setup.html')
 
@@ -68,31 +70,34 @@ def handle_connect():
 
 @socketio.on('submit_guess')
 def handle_guess(data):
-    if not game_state["game_started"]:
+    if not game_state["game_started"] or game_state["processing_guess"]:
         return
 
-    user_guess = data['guess'].strip()
-    correct_stage = kill_chain[game_state["current_stage"]]['name']
-    current_team = game_state["teams"][game_state["current_turn_index"]]
+    game_state["processing_guess"] = True
+    try:
+        user_guess = data['guess'].strip()
+        correct_stage = kill_chain[game_state["current_stage"]]['name']
+        current_team = game_state["teams"][game_state["current_turn_index"]]
 
-    if user_guess.lower() == correct_stage.lower():
-        current_team["score"] += 1
-        game_state["current_stage"] += 1
-        emit('guess_result', {'correct': True, 'team': current_team['name']}, broadcast=True)
+        if user_guess.lower() == correct_stage.lower():
+            current_team["score"] += 1
+            game_state["current_stage"] += 1
+            emit('guess_result', {'correct': True, 'team': current_team['name']}, broadcast=True)
+            
+            if game_state["current_stage"] >= len(kill_chain):
+                emit('game_over', {"winner": current_team['name'], "teams": game_state["teams"]}, broadcast=True)
+                game_state["game_started"] = False
+                return
+        else:
+            emit('guess_result', {'correct': False, 'team': current_team['name']}, broadcast=True)
+
+        # Advance to the next team's turn
+        game_state["current_turn_index"] = (game_state["current_turn_index"] + 1) % len(game_state["teams"])
         
-        if game_state["current_stage"] >= len(kill_chain):
-            emit('game_over', {"winner": current_team['name'], "teams": game_state["teams"]}, broadcast=True)
-            game_state["game_started"] = False
-            return
-    else:
-        emit('guess_result', {'correct': False, 'team': current_team['name']}, broadcast=True)
-
-    # Advance to the next team's turn
-    game_state["current_turn_index"] = (game_state["current_turn_index"] + 1) % len(game_state["teams"])
-    
-    # Give a moment for players to see the result before updating the board
-    socketio.sleep(2) 
-    emit('game_update', get_game_view(), broadcast=True)
+        socketio.sleep(2) 
+        emit('game_update', get_game_view(), broadcast=True)
+    finally:
+        game_state["processing_guess"] = False
 
 def get_game_view():
     view = {
