@@ -30,12 +30,6 @@
 
         <main class="container">
             <div id="game-area">
-                <div id="scoreboard">
-                    <h2>Scoreboard</h2>
-                    <ul id="teams-list">
-                        <!-- Teams will be dynamically inserted here -->
-                    </ul>
-                </div>
                 <div id="question-area">
                     <div id="turn-indicator"></div>
                     <p id="question-text"></p>
@@ -140,6 +134,7 @@
             document.getElementById('game-area').style.display = 'none';
             document.getElementById('win-screen').style.display = 'block';
             document.getElementById('winner-message').textContent = `${winner} wins the game!`;
+            
             const finalScoresList = document.getElementById('final-scores');
             finalScoresList.innerHTML = '';
             for (const team in teams) {
