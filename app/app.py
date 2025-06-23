@@ -53,9 +53,11 @@ def question_timer_expired(question_index):
             should_update_clients = True
     
     if should_update_clients:
-        socketio.emit('times_up', {'team': team_name_at_timeout}, broadcast=True)
+        # Emit events outside the lock to avoid holding it during network I/O and sleeps
+        socketio.emit('times_up', {'team': team_name_at_timeout})
         socketio.sleep(2)  # Give clients time to see the "time's up" message
         
+        # Now, send the new state and start the next timer.
         with game_lock:
             send_game_state_update()
             if not game_state.get('game_over'):
@@ -73,7 +75,7 @@ def send_game_state_update():
         return
     
     full_state = get_full_game_state()
-    socketio.emit('game_state_update', full_state, broadcast=True)
+    socketio.emit('game_state_update', full_state)
 
 def get_full_game_state():
     """Constructs the complete game state for the client."""
@@ -183,9 +185,9 @@ def handle_guess(data):
                 if game_state['teams'][current_team_name] >= 10:
                     game_state['game_over'] = True
                     game_state['winner'] = current_team_name
-                socketio.emit('guess_result', {'correct': True, 'team': current_team_name}, broadcast=True)
+                socketio.emit('guess_result', {'correct': True, 'team': current_team_name})
             else:
-                socketio.emit('guess_result', {'correct': False, 'team': current_team_name}, broadcast=True)
+                socketio.emit('guess_result', {'correct': False, 'team': current_team_name})
 
             if not game_state.get('game_over'):
                 advance_turn()
@@ -202,7 +204,7 @@ def handle_guess(data):
 def handle_new_game():
     with game_lock:
         reset_game()
-    emit('redirect_to_home', broadcast=True)
+    emit('redirect_to_home')
 
 if __name__ == '__main__':
     socketio.run(app, debug=True) 
