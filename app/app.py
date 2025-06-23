@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_socketio import SocketIO, emit
-from app.questions import get_shuffled_questions
+from questions import get_shuffled_questions
 
 app = Flask(__name__)
 socketio = SocketIO(app)
