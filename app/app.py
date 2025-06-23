@@ -32,6 +32,11 @@ def index():
     reset_game_state()
     return render_template('setup.html')
 
+@app.route('/name-teams', methods=['POST'])
+def name_teams():
+    num_teams = int(request.form.get('teams', 2))
+    return render_template('name_teams.html', num_teams=num_teams)
+
 @app.route('/start_game', methods=['POST'])
 def start_game():
     # Keep the shuffled questions but reset teams and progress
