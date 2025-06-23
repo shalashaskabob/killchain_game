@@ -9,11 +9,14 @@
 <body>
     <div class="container">
         <h1>Name Your Teams</h1>
-        <form action="{{ url_for('start_game') }}" method="post">
+        <form action="{{ url_for('start_game') }}" method="POST">
             <input type="hidden" name="num_teams" value="{{ num_teams }}">
+            <input type="hidden" name="game_type" value="{{ game_type }}">
             {% for i in range(num_teams) %}
-                <label for="team_{{ i }}">Team {{ i + 1 }} Name:</label>
-                <input type="text" name="team_{{ i }}" id="team_{{ i }}" required>
+            <div class="team-name-input">
+                <label for="team_{{ i }}">Team {{ i + 1 }} Name</label>
+                <input type="text" id="team_{{ i }}" name="team_{{ i }}" required>
+            </div>
             {% endfor %}
             <button type="submit">Start Game</button>
         </form>

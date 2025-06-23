@@ -16,104 +16,145 @@
                 <p id="turn-indicator">Loading...</p>
             </div>
             <button id="new-game-btn" class="new-game-btn">New Game</button>
+            <div class="kill-chain-header" id="kill-chain-header">
+                <!-- Categories will be dynamically inserted here -->
+            </div>
         </header>
 
         <div id="scoreboard">
-            <!-- Scores will be rendered here by JS -->
+            <h2>Scoreboard</h2>
+            <ul id="teams-list">
+                <!-- Teams will be dynamically inserted here -->
+            </ul>
         </div>
 
-        <main class="game-area">
-            <p id="question-number"></p>
-            <div class="card">
-                <div class="apt-header">
-                    <p><strong>Threat Actor:</strong> <span id="apt-name"></span></p>
+        <main class="container">
+            <div id="game-area">
+                <div id="scoreboard">
+                    <h2>Scoreboard</h2>
+                    <ul id="teams-list">
+                        <!-- Teams will be dynamically inserted here -->
+                    </ul>
                 </div>
-                <p><strong>Scenario:</strong> <span id="question-description"></span></p>
+                <div id="question-area">
+                    <div id="turn-indicator"></div>
+                    <p id="question-text"></p>
+                    <p id="question-actor"></p>
+                    <div id="guess-result"></div>
+                </div>
             </div>
-            <div id="result-feedback"></div>
-            <form id="guess-form">
-                <input type="text" id="stage-guess" placeholder="Enter stage name..." required autocomplete="off">
-                <button type="submit">Submit Guess</button>
-            </form>
+            <div id="win-screen" style="display: none;">
+                <h1 id="winner-message"></h1>
+                <h2>Final Scores</h2>
+                <ul id="final-scores">
+                    <!-- Final scores will be dynamically inserted here -->
+                </ul>
+            </div>
         </main>
     </div>
 
     <script>
         const socket = io();
 
-        const scoreboard = document.getElementById('scoreboard');
-        const questionNumber = document.getElementById('question-number');
-        const questionDescription = document.getElementById('question-description');
-        const aptName = document.getElementById('apt-name');
-        const guessForm = document.getElementById('guess-form');
-        const guessInput = document.getElementById('stage-guess');
-        const turnIndicator = document.getElementById('turn-indicator');
-        const resultFeedback = document.getElementById('result-feedback');
-        const newGameBtn = document.getElementById('new-game-btn');
-
-        socket.on('game_update', function(data) {
-            resultFeedback.innerHTML = '';
-            guessInput.disabled = false;
-            guessForm.querySelector('button').disabled = false;
-            
-            turnIndicator.textContent = `${data.current_turn}'s Turn`;
-
-            let scoresHtml = '';
-            data.teams.forEach(team => {
-                const activeClass = team.name === data.current_turn ? 'active-team' : '';
-                scoresHtml += `<div class="team-score ${activeClass}">
-                                 <span class="team-name">${team.name}</span>
-                                 <span class="score">${team.score}</span>
-                               </div>`;
-            });
-            scoreboard.innerHTML = scoresHtml;
-
-            questionDescription.textContent = data.question;
-            aptName.textContent = data.apt;
-            questionNumber.textContent = `Question #${data.question_number}`;
-            
-            guessInput.focus();
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            socket.emit('get_game_state');
         });
 
-        guessForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const guess = guessInput.value;
-            if (guess) {
-                socket.emit('submit_guess', { guess: guess });
-                guessInput.value = '';
-                guessInput.disabled = true;
-                guessForm.querySelector('button').disabled = true;
+        socket.on('redirect_to_home', () => {
+            window.location.href = "{{ url_for('home') }}";
+        });
+
+        socket.on('game_state_update', (data) => {
+            console.log('Game state update:', data);
+            updateScoreboard(data.teams);
+            updateTurnIndicator(data.current_turn);
+            updateQuestion(data.current_question);
+            updateCategories(data.categories);
+            if (data.game_over) {
+                showWinScreen(data.winner, data.teams);
             }
         });
+
+        socket.on('guess_result', (data) => {
+            const resultDiv = document.getElementById('guess-result');
+            if (data.correct) {
+                resultDiv.textContent = `Correct! Point for ${data.team}.`;
+                resultDiv.className = 'correct';
+            } else {
+                resultDiv.textContent = `Incorrect. Next team's turn.`;
+                resultDiv.className = 'incorrect';
+            }
+        });
+
+        socket.on('game_over', (data) => {
+            showWinScreen(data.winner, data.teams);
+        });
+
+        function updateScoreboard(teams) {
+            const teamsList = document.getElementById('teams-list');
+            teamsList.innerHTML = '';
+            for (const team in teams) {
+                const li = document.createElement('li');
+                li.textContent = `${team}: ${teams[team]}`;
+                teamsList.appendChild(li);
+            }
+        }
+
+        function updateTurnIndicator(currentTurn) {
+            const turnDiv = document.getElementById('turn-indicator');
+            if (currentTurn) {
+                turnDiv.textContent = `It's ${currentTurn}'s turn to answer.`;
+            }
+        }
+
+        function updateQuestion(question) {
+            const questionText = document.getElementById('question-text');
+            const questionActor = document.getElementById('question-actor');
+            if (question) {
+                questionText.textContent = `Scenario: ${question.scenario}`;
+                questionActor.textContent = `Threat Actor: ${question.actor}`;
+                document.getElementById('guess-result').textContent = '';
+            } else {
+                questionText.textContent = 'Waiting for game to start...';
+                questionActor.textContent = '';
+            }
+        }
+        
+        function updateCategories(categories) {
+            const header = document.getElementById('kill-chain-header');
+            header.innerHTML = '';
+            categories.forEach(category => {
+                const span = document.createElement('span');
+                span.textContent = category;
+                span.onclick = () => submitGuess(category);
+                header.appendChild(span);
+            });
+        }
+
+        function submitGuess(guess) {
+            socket.emit('submit_guess', { 'guess': guess });
+        }
+
+        function showWinScreen(winner, teams) {
+            document.getElementById('game-area').style.display = 'none';
+            document.getElementById('win-screen').style.display = 'block';
+            document.getElementById('winner-message').textContent = `${winner} wins the game!`;
+            const finalScoresList = document.getElementById('final-scores');
+            finalScoresList.innerHTML = '';
+            for (const team in teams) {
+                const li = document.createElement('li');
+                li.textContent = `${team}: ${teams[team]}`;
+                finalScoresList.appendChild(li);
+            }
+        }
+
+        const newGameBtn = document.getElementById('new-game-btn');
 
         newGameBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to start a new game? Current progress will be lost.')) {
                 socket.emit('new_game');
             }
-        });
-
-        socket.on('guess_result', function(data) {
-            let feedbackClass = data.correct ? 'correct' : 'incorrect';
-            let feedbackText = data.correct ? `Correct! +1 point for ${data.team}` : `Incorrect! Next team's turn.`;
-            resultFeedback.innerHTML = `<p class="${feedbackClass}">${feedbackText}</p>`;
-        });
-
-        socket.on('redirect_to_setup', function() {
-            window.location.href = "/";
-        });
-
-        socket.on('game_over', function(data) {
-            let finalScores = '<div class="final-scores">';
-            data.teams.forEach(team => {
-                finalScores += `<p>${team.name}: ${team.score}</p>`;
-            });
-            finalScores += '</div><a href="/" class="play-again-btn">Play Again</a>';
-            document.querySelector('.game-container').innerHTML = `
-                <header class="game-header">
-                    <h1>Game Over!</h1>
-                    <p class="winner-announcement">${data.winner} is the winner!</p>
-                </header>
-                ${finalScores}`;
         });
 
     </script>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select a Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .game-selection {
+            display: flex;
+            gap: 20px;
+        }
+        .game-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            cursor: pointer;
+            border: 2px solid #00ffff;
+            background-color: #1a1a1a;
+            color: #00ffff;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .game-button:hover {
+            background-color: #00ffff;
+            color: #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Choose Your Challenge</h1>
+        <div class="game-selection">
+            <a href="{{ url_for('setup', game_type='kill_chain') }}" class="game-button">Cyber Kill Chain</a>
+            <a href="{{ url_for('setup', game_type='mitre') }}" class="game-button">MITRE ATT&CK</a>
+        </div>
+    </div>
+</body>
+</html> 
