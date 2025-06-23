@@ -117,6 +117,24 @@ h1 {
     margin: 20px 0;
     font-size: 1.2em;
     border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.apt-header {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 15px;
+    margin: -25px -25px 20px -25px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.apt-header p {
+    margin: 0;
+    font-size: 0.9em;
+    font-family: var(--font-display);
+    color: var(--incorrect-color);
+    text-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
 }
 
 #result-feedback p {

@@ -105,10 +105,12 @@ def get_game_view():
     """Constructs the data payload for the frontend."""
     # Ensure we don't go out of bounds if questions run out
     q_index = game_state['current_question_index'] % len(game_state['questions'])
+    current_question = game_state['questions'][q_index]
     
     view = {
         "teams": game_state["teams"],
-        "question": game_state["questions"][q_index]["description"],
+        "question": current_question["description"],
+        "apt": current_question["apt"],
         "question_number": game_state["current_question_index"] + 1,
         "current_turn": game_state["teams"][game_state["current_turn_index"]]["name"]
     }
